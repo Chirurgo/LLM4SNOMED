@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compare Entity Annotations</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
+    select, button { padding: 0.5rem; margin-right: 1rem; }
+    .panel { margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 5px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .panel h3 { margin-top: 0; }
+    .annotation-container { display: flex; }
+    .annotation-box { flex: 3; white-space: pre-wrap; line-height: 1.6; padding-right: 1rem; }
+    .info-box { flex: 1; background: #eef0f1; border-radius: 4px; padding: 0.5rem; margin-left: 1rem; font-size: 0.9rem; }
+    .entity { background: #ffff99; border-radius: 4px; padding: 0 4px; margin: 0 1px; cursor: pointer; }
+    .entity:hover { background: #ffe066; }
+    .controls { margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>📊 Compare Entity Annotations</h1>
+  <form method="POST" class="controls">
+    <label for="doc_id">Document ID:</label>
+    <select name="doc_id" id="doc_id" required>
+      {% for doc_id in doc_ids %}<option value="{{ doc_id }}" {% if doc_id == selected_id %}selected{% endif %}>{{ doc_id }}</option>{% endfor %}
+    </select>
+    <label for="model">Model:</label>
+    <select name="model" id="model" required>
+      {% for model in model_names %}<option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>{% endfor %}
+    </select>
+    <button type="submit">Load</button>
+  </form>
+  {% if gold_text %}
+  <div class="panel">
+    <h3>🟩 Gold Annotations</h3>
+    <div class="annotation-container">
+      <div class="annotation-box">
+        {% set ns = namespace(last=0) %}{% for e in gold_entities|sort(attribute='start_index') %}{{ gold_text[ns.last:e.start_index] }}<span class="entity gold" data-label="{{ e['label'] }}" data-substring="{{ e['substring'] }}" data-target-code="{{ e['Target code'] }}" data-target-display="{{ e['Target display'] }}" data-relationship="{{ e['Relationship type code'] }}" data-nomap="{{ e['No map flag'] }}" data-status="{{ e['Status'] }}">{{ gold_text[e.start_index:e.end_index] }}</span>{% set ns.last = e.end_index %}{% endfor %}{{ gold_text[ns.last:] }}
+      </div><div class="info-box" id="gold-info"><p>Click on a gold-highlighted entity to see details here.</p></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>🟦 Predicted Annotations (from {{ selected_model }}.json)</h3>
+    <div class="annotation-container">
+      <div class="annotation-box">
+        {% set ns2 = namespace(last=0) %}{% for e in pred_entities|sort(attribute='start_index') %}{{ gold_text[ns2.last:e.start_index] }}<span class="entity pred" data-domain="{{ e['domain'] }}" data-term="{{ e['term'] }}" data-formal-term="{{ e['formal_term'] }}" data-concept-id="{{ e['concept_id'] }}" data-concept-name="{{ e['concept_name'] }}" data-matched-name="{{ e['matched_name'] }}" data-stat="{{ e['status'] }}" data-attribute="{{ e['attributes']}}">{{ gold_text[e.start_index:e.end_index] }}</span>{% set ns2.last = e.end_index %}{% endfor %}{{ gold_text[ns2.last:] }}
+      </div><div class="info-box" id="pred-info"><p>Click on a predicted-highlighted entity to see details here.</p></div>
+    </div>
+  </div>
+  {% endif %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.entity.gold').forEach(span => {span.addEventListener('click', () => {const label=span.getAttribute('data-label');const substring=span.getAttribute('data-substring');const targetCode=span.getAttribute('data-target-code');const targetDisplay=span.getAttribute('data-target-display');const relationship=span.getAttribute('data-relationship');const noMap=span.getAttribute('data-nomap');const status=span.getAttribute('data-status');document.getElementById('gold-info').innerHTML=`<strong>Domain:</strong> ${label}<br><strong>Substring:</strong> ${substring}<br><strong>SNOMED CT Code:</strong> ${targetCode}<br><strong>SNOMED CT Name:</strong> ${targetDisplay}<br><strong>Map strenght:</strong> ${relationship}<br><strong>No Map Flag:</strong> ${noMap}<br><strong>Map status:</strong> ${status}`;});});
+      document.querySelectorAll('.entity.pred').forEach(span => {span.addEventListener('click', () => {const label=span.getAttribute('data-domain');const text=span.getAttribute('data-term');const concept=span.getAttribute('data-formal-term');const conceptId=span.getAttribute('data-concept-id');const conceptName=span.getAttribute('data-concept-name');const matchName=span.getAttribute('data-matched-name');const stat=span.getAttribute('data-stat');const attribute=span.getAttribute('data-attribute');document.getElementById('pred-info').innerHTML=`<strong>Domain:</strong> ${label}<br><strong>Term:</strong> ${text}<br><strong>Formal term:</strong> ${concept}<br><strong>Concept ID:</strong> ${conceptId}<br><strong>Concept Name:</strong> ${conceptName} <br><strong>Matched Name:</strong> ${matchName} <br><strong>Concept Status:</strong> ${stat} <br><strong>Attribute:</strong> ${attribute}`;});});
+    });
+  </script>
+</body>
+</html>
