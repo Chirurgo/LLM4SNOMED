@@ -427,3 +427,55 @@ class Evaluator:
             u95 = float(values['u95'])
             print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
 
+    def _span_iou(self, span1, span2):
+        inter_start = max(span1[0], span2[0])
+        inter_end = min(span1[1], span2[1])
+        intersection = max(0, inter_end - inter_start)
+        union = max(span1[1], span2[1]) - min(span1[0], span2[0])
+        return intersection / union if union > 0 else 0.0
+
+    def iou(self):
+        all_true, all_pred = self.transform_data()
+        
+        # We need to track character-level sets for each concept per document
+        # Using a dictionary: (doc_idx, concept_id) -> set of character indices
+        gold_chars = defaultdict(set)
+        pred_chars = defaultdict(set)
+        concept_ids = set()
+
+        for idx, (true_ents, pred_ents) in enumerate(zip(all_true, all_pred)):
+            for _, (start, end), cid in true_ents:
+                gold_chars[(idx, cid)].update(range(start, end))
+                concept_ids.add(cid)
+            for _, (start, end), cid in pred_ents:
+                pred_chars[(idx, cid)].update(range(start, end))
+                concept_ids.add(cid)
+
+        total_iou = 0.0
+        num_docs = len(all_true)
+        
+        # The paper calculates IoU per concept per document
+        # and then takes the mean across documents
+        for doc_idx in range(num_docs):
+            doc_concepts = {cid for (i, cid) in (set(gold_chars.keys()) | set(pred_chars.keys())) if i == doc_idx}
+            
+            doc_iou_sum = 0.0
+            if not doc_concepts:
+                total_iou += 1.0 # Or 0.0 depending on how you handle empty docs; usually 1.0 if perfectly empty
+                continue
+                
+            for cid in doc_concepts:
+                g_set = gold_chars[(doc_idx, cid)]
+                p_set = pred_chars[(doc_idx, cid)]
+                
+                intersection = len(g_set & p_set)
+                union = len(g_set | p_set)
+                
+                if union > 0:
+                    doc_iou_sum += (intersection / union)
+            
+            # Mean IoU for this document across all concepts present in ground truth or pred
+            total_iou += (doc_iou_sum / len(doc_concepts))
+
+        final_mean_iou = total_iou / num_docs
+        return f"Mean IoU: {final_mean_iou:.2%}", final_mean_iou

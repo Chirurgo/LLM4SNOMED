@@ -1,6 +1,6 @@
 import json
 import warnings
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union
 import numpy as np
 
 class UndefinedMetricWarning(UserWarning):

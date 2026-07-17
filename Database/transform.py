@@ -369,58 +369,6 @@ async def awrite_relationships(
     except Exception as e:
         print(f"Error writing relationships: {e}")
 
-async def awrite_relationships_apoc(
-    lf: pl.LazyFrame,
-    neo4j_url: str,
-    neo4j_user: str,
-    neo4j_password: str,
-    batch_size: int = 10_000,
-):
-    """Writes dynamic relationships between Concept nodes to Neo4j using apoc.create.relationship."""
-    try:
-        total_rows = await asyncio.to_thread(lambda: lf.select(pl.len()).collect().item())
-        pbar = tqdm(total=total_rows, desc="Writing Relationships")
-        start = 0
-
-        # Initialize Neo4j driver
-        driver = AsyncGraphDatabase.driver(neo4j_url, auth=(neo4j_user, neo4j_password))
-        async with driver:
-            async with driver.session() as session:
-                while True:
-                    batch_lf = lf.slice(offset=start, length=batch_size)
-                    rows = await asyncio.to_thread(lambda: batch_lf.select(pl.len()).collect().item())
-                    batch_data = batch_lf.collect().to_dicts()
-
-                    relationships = [
-                        {
-                            "sourceId": row.get("sourceId"),
-                            "destinationId": row.get("destinationId"),
-                            "TYPE": row.get("TYPE"),
-                        }
-                        for row in batch_data
-                        if row.get("sourceId") and row.get("destinationId") and row.get("TYPE")
-                    ]
-
-                    if relationships:
-                        query = """
-                        UNWIND $batch AS row
-                        MATCH (source:Concept {concept_id: row.sourceId})
-                        MATCH (target:Concept {concept_id: row.destinationId})
-                        CALL apoc.create.relationship(source, row.TYPE, {}, target)
-                        YIELD rel
-                        RETURN count(*)
-                        """
-                        await session.run(query, parameters={"batch": relationships})
-
-                    start += batch_size
-                    pbar.update(rows)
-                    if rows < batch_size:
-                        break
-        pbar.close()
-
-    except Exception as e:
-        print(f"Error writing relationships: {e}")
-
 
 def delete_all_in_batches(uri, user, password, database="neo4j", batch_size=30000, pause_sec=0.0):
     """
