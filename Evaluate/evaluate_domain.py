@@ -134,12 +134,11 @@ class DomainEvaluator:
 
     def _calculate_ci(self, tp, fn, fp, z=1.96):
         results = {}
-        
-        # 1. Standard Proportions (Precision, Recall, FNR)
+
+        # 1. Standard Proportions (Precision, Recall)
         metrics_to_calc = [
             (tp, tp + fp, "Precision"),
             (tp, tp + fn, "Recall"),
-            (fn, tp + fn, "FNR")
         ]
         
         for x, n, name in metrics_to_calc:

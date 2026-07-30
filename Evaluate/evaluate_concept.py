@@ -77,11 +77,10 @@ def extract_tp_actual_correct(y_true, y_pred):
 
 def _calculate_ci(tp, fn, fp, z=1.96):
     results = {}
-    # 1. Standard Proportions (Precision, Recall, FNR)
+    # 1. Standard Proportions (Precision, Recall)
     metrics_to_calc = [
         (tp, tp + fp, "Precision"),
         (tp, tp + fn, "Recall"),
-        (fn, tp + fn, "FNR")
     ]
     
     for x, n, name in metrics_to_calc:
@@ -265,15 +264,10 @@ class Evaluator:
         for preds in prediction_batches:
             spans = []
             for ent in preds:
-                top1 = (
-                    ent["tops"][0]["concept_id"]
-                    if ent.get("tops")
-                    else ent["concept_id"]
-                )
                 spans.append([
                     "concept",
                     (int(ent["start_index"]), int(ent["end_index"])),
-                    str(top1)
+                    str(ent["concept_id"])
                 ])
             all_preds.append(spans)
         return all_preds
@@ -478,4 +472,7 @@ class Evaluator:
             total_iou += (doc_iou_sum / len(doc_concepts))
 
         final_mean_iou = total_iou / num_docs
-        return f"Mean IoU: {final_mean_iou:.2%}", final_mean_iou
+        report = f"Mean IoU: {final_mean_iou:.2%}"
+        print("IoU evaluation")
+        print(f"{'IoU':10}: {final_mean_iou*100:>6.2f}%")
+        return report, final_mean_iou

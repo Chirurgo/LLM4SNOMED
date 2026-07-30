@@ -69,7 +69,7 @@ def _clean_token(tok: str) -> str:
 def _extract_attribute_keywords(entity: Dict[str, Any]) -> set:
     """Extract a set of cleaned, lowercased keywords from entity attributes."""
     kws = set()
-    attrs = entity.get("attribute") or {}
+    attrs = entity.get("attributes") or {}
     if not isinstance(attrs, dict):
         return kws
 
@@ -194,7 +194,7 @@ def position_entities(input_text: str, entities: List[Dict[str, Any]]) -> List[D
 
     Input:
         input_text: source text
-        entities: list of dicts, each with at least {"term": str, "attribute": dict}
+        entities: list of dicts, each with at least {"term": str, "attributes": dict}
 
     Output:
         New list with keys added per entity when matched:

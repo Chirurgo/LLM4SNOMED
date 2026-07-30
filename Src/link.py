@@ -124,7 +124,7 @@ Respond with only the JSON object. Do not include any other text or explanation 
         response = link_chain.invoke(prompt_inputs)
         parsed_concept = Concept(**response)
         idx = parsed_concept.choice - 1 
-    except (json.JSONDecodeError, KeyError, ValueError, TypeError, Exception) as e:
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
         print(f"<!!!> Error mapping '{entity.get('term')}': {e}. Response: {response}")
 
 

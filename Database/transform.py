@@ -7,11 +7,11 @@ from tqdm.auto import tqdm
 from neo4j import AsyncGraphDatabase, GraphDatabase
 import re
 import unicodedata
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 
 
-def reformat_snomed(data_path: str) -> pl.LazyFrame:
+def reformat_snomed(data_path: str) -> Tuple[pl.LazyFrame, pl.LazyFrame, pl.LazyFrame]:
         def _scan_active_snomed(filename: str) -> pl.LazyFrame:
             lf = pl.scan_csv(source=filename,
                             encoding="utf8",

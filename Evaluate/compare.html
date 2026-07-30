@@ -49,9 +49,48 @@
   </div>
   {% endif %}
   <script>
+    // Renders label/value pairs as text nodes only (never innerHTML) so that
+    // entity values sourced from clinical text / LLM output can never be
+    // interpreted as markup.
+    function renderInfo(container, rows) {
+      container.textContent = '';
+      rows.forEach(([label, value], i) => {
+        const strong = document.createElement('strong');
+        strong.textContent = label + ':';
+        container.appendChild(strong);
+        container.appendChild(document.createTextNode(' ' + (value ?? '') + ' '));
+        if (i < rows.length - 1) container.appendChild(document.createElement('br'));
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.entity.gold').forEach(span => {span.addEventListener('click', () => {const label=span.getAttribute('data-label');const substring=span.getAttribute('data-substring');const targetCode=span.getAttribute('data-target-code');const targetDisplay=span.getAttribute('data-target-display');const relationship=span.getAttribute('data-relationship');const noMap=span.getAttribute('data-nomap');const status=span.getAttribute('data-status');document.getElementById('gold-info').innerHTML=`<strong>Domain:</strong> ${label}<br><strong>Substring:</strong> ${substring}<br><strong>SNOMED CT Code:</strong> ${targetCode}<br><strong>SNOMED CT Name:</strong> ${targetDisplay}<br><strong>Map strenght:</strong> ${relationship}<br><strong>No Map Flag:</strong> ${noMap}<br><strong>Map status:</strong> ${status}`;});});
-      document.querySelectorAll('.entity.pred').forEach(span => {span.addEventListener('click', () => {const label=span.getAttribute('data-domain');const text=span.getAttribute('data-term');const concept=span.getAttribute('data-formal-term');const conceptId=span.getAttribute('data-concept-id');const conceptName=span.getAttribute('data-concept-name');const matchName=span.getAttribute('data-matched-name');const stat=span.getAttribute('data-stat');const attribute=span.getAttribute('data-attribute');document.getElementById('pred-info').innerHTML=`<strong>Domain:</strong> ${label}<br><strong>Term:</strong> ${text}<br><strong>Formal term:</strong> ${concept}<br><strong>Concept ID:</strong> ${conceptId}<br><strong>Concept Name:</strong> ${conceptName} <br><strong>Matched Name:</strong> ${matchName} <br><strong>Concept Status:</strong> ${stat} <br><strong>Attribute:</strong> ${attribute}`;});});
+      document.querySelectorAll('.entity.gold').forEach(span => {
+        span.addEventListener('click', () => {
+          renderInfo(document.getElementById('gold-info'), [
+            ['Domain', span.getAttribute('data-label')],
+            ['Substring', span.getAttribute('data-substring')],
+            ['SNOMED CT Code', span.getAttribute('data-target-code')],
+            ['SNOMED CT Name', span.getAttribute('data-target-display')],
+            ['Map strenght', span.getAttribute('data-relationship')],
+            ['No Map Flag', span.getAttribute('data-nomap')],
+            ['Map status', span.getAttribute('data-status')],
+          ]);
+        });
+      });
+      document.querySelectorAll('.entity.pred').forEach(span => {
+        span.addEventListener('click', () => {
+          renderInfo(document.getElementById('pred-info'), [
+            ['Domain', span.getAttribute('data-domain')],
+            ['Term', span.getAttribute('data-term')],
+            ['Formal term', span.getAttribute('data-formal-term')],
+            ['Concept ID', span.getAttribute('data-concept-id')],
+            ['Concept Name', span.getAttribute('data-concept-name')],
+            ['Matched Name', span.getAttribute('data-matched-name')],
+            ['Concept Status', span.getAttribute('data-stat')],
+            ['Attribute', span.getAttribute('data-attribute')],
+          ]);
+        });
+      });
     });
   </script>
 </body>
