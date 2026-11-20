@@ -1,13 +1,13 @@
 from typing import Dict, Any, Literal
 import json
-from langchain_community.vectorstores.neo4j_vector import Neo4jVector
 from pydantic import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.documents import Document
-from neo4j import GraphDatabase
 
-from Src.retrieval import search_top_k_names
+from Src.domain_mapping import allowed_tags_for_domain
+from Src.stores.base import ConceptStore
+
 
 def rerank_candidates(reranker, query_text: str, docs: list[Document], top_n: int = 20) -> list[Document]:
     pairs = [[query_text, d.page_content] for d in docs]
@@ -25,29 +25,81 @@ def rerank_candidates(reranker, query_text: str, docs: list[Document], top_n: in
             break
     return unique
 
+def retrieve_candidates(
+    entity: Dict[str, Any],
+    store: ConceptStore,
+    k_candidate: int,
+    use_hybrid: bool = False,
+    min_hits: int = 3,
+    expand_factor: float = 2.0,
+) -> list[Document]:
+    """Stage 3: domain-filtered candidate retrieval for one extracted entity."""
+    allowed_semantic_tags = allowed_tags_for_domain(entity.get("domain", "")) or None
+    search = store.hybrid_search if (use_hybrid and store.supports_hybrid) else store.similarity_search
+    return search(entity["formal_term"], k_candidate, allowed_semantic_tags=allowed_semantic_tags,
+                  min_hits=min_hits, expand_factor=expand_factor)
+
+
+def empty_prediction(entity: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        **entity,
+        "concept_name": None,
+        "matched_name": None,
+        "concept_id": None,
+        "tops": None,
+        "llm_choice": None
+        }
+
+
+def pad_to_five(top_docs: list[Document]) -> list[Document]:
+    top_docs = list(top_docs)
+    while len(top_docs) < 5:
+        top_docs.append(Document(page_content="(no content)", metadata={"concept_id": None}))
+    return top_docs
+
+
+def build_prediction(
+    entity: Dict[str, Any],
+    top_docs: list[Document],
+    choice: int,
+    mapping_reason: str,
+    store: ConceptStore,
+) -> Dict[str, Any]:
+    """Final prediction record (the schema Evaluate/*.py reads). `choice` is 1-based."""
+    chosen = top_docs[choice - 1]
+    concept_id = chosen.metadata.get("concept_id")
+    fsn = store.get_fsn(concept_id, hint_doc=chosen)
+    return {
+        **entity,
+        "concept_name": fsn,
+        "matched_name": chosen.page_content,
+        "concept_id": concept_id,
+        "llm_choice": choice,
+        "mapping_reason": mapping_reason,
+        "tops": [
+            {
+                "content": d.page_content,
+                "concept_id": d.metadata.get("concept_id")
+            }
+            for d in top_docs
+        ],
+    }
+
+
 class Concept(BaseModel):
     """Represents the model selection of SNOMED CT concept."""
-    
+
     choice: Literal[1,2,3,4,5] = Field(
         description="The only choice from 5 options of SNOMED CT description"
     )
-                                         
+
     mapping_reason: str = Field(
         description="The reasoning from the model for deciding the final choice."
     )
 
-def link_rerank_entity(
-    entity: Dict[str, Any],
-    neo4j_index: Neo4jVector,
-    neo4j_url: str,
-    neo4j_user: str,
-    neo4j_password: str,
-    k_candidate: int,
-    llm,
-    reranker,
-) -> Dict[str, Any]:
-
-    # --- 1) set up the LLM chain ---
+def llm_select(entity: Dict[str, Any], top_docs: list[Document], llm) -> tuple[int, str]:
+    """Stage 5 (LLM mode): ask the LLM to pick 1 of the first 5 candidates.
+    Returns (1-based choice, mapping_reason); falls back to choice 1 if parsing fails."""
     link_parser = JsonOutputParser(pydantic_object=Concept, strict=True)
     link_prompt = PromptTemplate(
         input_variables=["entity", "term", "doc1", "doc2", "doc3", "doc4", "doc5"],
@@ -57,7 +109,7 @@ You are a clinical language model. Your function is to map a medical entity to t
 
 Given an extracted **Term** and the **Entity**, and three SNOMED CT candidate snippets, choose the one snippet that best matches the semantic meaning of the **Entity**.
 
-Entity: "{entity}" 
+Entity: "{entity}"
 Term: "{term}"
 
 Options:
@@ -68,7 +120,7 @@ Options:
 5. {doc5}
 
 **RESPONSE INSTRUCTIONS:**
-You must respond with a JSON object that strictly adheres to the following format. 
+You must respond with a JSON object that strictly adheres to the following format.
 The value for 'choice' must be one of the numbers from 1 to 5.
 JSON format:
 {map_format}
@@ -78,35 +130,6 @@ Respond with only the JSON object. Do not include any other text or explanation 
     )
     link_chain = link_prompt | llm | link_parser
 
-    # --- 2) retrieve candidates ---
-    top_docs = search_top_k_names(
-        entity, 
-        neo4j_index, 
-        neo4j_url, 
-        neo4j_user, 
-        neo4j_password,
-        k_candidate,
-    )
-
-
-    query = entity["formal_term"]
-    top_docs = rerank_candidates(reranker=reranker, query_text=query, docs=top_docs, top_n=20)
-    
-    if len(top_docs) < 2:
-        return {
-            **entity, 
-            "concept_name": None, 
-            "matched_name": None,
-            "concept_id": None, 
-            "tops": None, 
-            "llm_choice": None
-            }
-
-    # pad to exactly 5
-    while len(top_docs) < 5:
-        top_docs.append(Document(page_content="(no content)", metadata={"concept_id": None}))
-
-    # --- 3) invoke the LLM ---
     doc_texts = [d.page_content for d in top_docs]
     prompt_inputs = {
         "entity": entity["formal_term"],
@@ -123,112 +146,59 @@ Respond with only the JSON object. Do not include any other text or explanation 
     try:
         response = link_chain.invoke(prompt_inputs)
         parsed_concept = Concept(**response)
-        idx = parsed_concept.choice - 1 
+        idx = parsed_concept.choice - 1
     except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
         print(f"<!!!> Error mapping '{entity.get('term')}': {e}. Response: {response}")
 
+    return idx + 1, parsed_concept.mapping_reason
 
-    chosen = top_docs[idx]
-    concept_id = chosen.metadata.get("concept_id")
-    fsn = None
-    if concept_id is not None:
-        driver = GraphDatabase.driver(neo4j_url, auth=(neo4j_user, neo4j_password))
-        with driver.session() as session:
-            record = session.run(
-                """
-                MATCH (c:Concept {concept_id: $id})
-                RETURN c.FSN AS fsn
-                """,
-                id=concept_id
-            ).single()
-            if record:
-                fsn = record["fsn"]
-        driver.close()
-    return {
-        **entity,
-        "concept_name": fsn, 
-        "matched_name": chosen.page_content,
-        "concept_id": concept_id,
-        "llm_choice": parsed_concept.choice,
-        "mapping_reason": parsed_concept.mapping_reason,
-        "tops": [
-            {
-                "content": d.page_content,
-                "concept_id": d.metadata.get("concept_id")
-            }
-            for d in top_docs
-        ],
-    }
+
+def link_rerank_entity(
+    entity: Dict[str, Any],
+    store: ConceptStore,
+    k_candidate: int,
+    llm,
+    reranker,
+    use_hybrid: bool = False,
+) -> Dict[str, Any]:
+
+    # --- 1) retrieve candidates ---
+    query = entity["formal_term"]
+    top_docs = retrieve_candidates(entity, store, k_candidate, use_hybrid)
+
+    top_docs = rerank_candidates(reranker=reranker, query_text=query, docs=top_docs, top_n=20)
+
+    if len(top_docs) < 2:
+        return empty_prediction(entity)
+
+    top_docs = pad_to_five(top_docs)
+
+    # --- 2) invoke the LLM ---
+    choice, reason = llm_select(entity, top_docs, llm)
+    return build_prediction(entity, top_docs, choice, reason, store)
 
 
 def link_topone(
     entity: Dict[str, Any],
-    neo4j_index: Neo4jVector,
-    neo4j_url: str,
-    neo4j_user: str,
-    neo4j_password: str,
+    store: ConceptStore,
     k_candidate: int,
     reranker,
+    use_hybrid: bool = False,
 ) -> Dict[str, Any]:
 
-    # --- 1) set up the LLM chain --- NO LLM reranking, just pick top 1 from reranker
-    link_parser = JsonOutputParser(pydantic_object=Concept, strict=True)
-
-    # --- 2) retrieve candidates ---
-    top_docs = search_top_k_names(
-        entity, 
-        neo4j_index, 
-        neo4j_url, 
-        neo4j_user, 
-        neo4j_password,
-        k_candidate,
-    )
+    # --- 1) retrieve candidates --- NO LLM reranking, just pick top 1 from reranker
     query = entity["formal_term"]
+    top_docs = retrieve_candidates(entity, store, k_candidate, use_hybrid)
+
     top_docs = rerank_candidates(reranker=reranker, query_text=query, docs=top_docs, top_n=20)
-    
+
     if len(top_docs) < 2:
-        return {
-            **entity, 
-            "concept_name": None, 
-            "matched_name": None,
-            "concept_id": None, 
-            "tops": None, 
-            "llm_choice": None
-            }
+        return empty_prediction(entity)
 
-    # pad to exactly 5
-    while len(top_docs) < 5:
-        top_docs.append(Document(page_content="(no content)", metadata={"concept_id": None}))
+    top_docs = pad_to_five(top_docs)
 
-    # --- 3) invoke the LLM ---
-    chosen = top_docs[0]
-    concept_id = chosen.metadata.get("concept_id")
-    fsn = None
-    if concept_id is not None:
-        driver = GraphDatabase.driver(neo4j_url, auth=(neo4j_user, neo4j_password))
-        with driver.session() as session:
-            record = session.run(
-                """
-                MATCH (c:Concept {concept_id: $id})
-                RETURN c.FSN AS fsn
-                """,
-                id=concept_id
-            ).single()
-            if record:
-                fsn = record["fsn"]
-        driver.close()
-    return {
-        **entity,
-        "concept_name": fsn, 
-        "matched_name": chosen.page_content,
-        "concept_id": concept_id,
-        "llm_choice": 1,
-        "mapping_reason": "Top-1 candidate selected without LLM reranking.",
-        "tops": [
-            {
-                "content": d.page_content,
-                "concept_id": d.metadata.get("concept_id")
-            }
-            for d in top_docs
-        ],
-    }
+    # --- 2) pick top-1 ---
+    return build_prediction(entity, top_docs, 1, TOP1_REASON, store)
+
+
+TOP1_REASON = "Top-1 candidate selected without LLM reranking."

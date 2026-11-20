@@ -1,0 +1,84 @@
+# Backends for the multi-backend SNOMED CT retrieval benchmark (see Benchmark/ and
+# the plan at .claude/plans -- Neo4j baseline + Postgres/Qdrant/Weaviate/Meilisearch).
+#
+# `docker compose up -d` brings up all five. If Neo4j is already running separately
+# per README.md's own setup instructions, omit it: `docker compose up -d postgres
+# qdrant weaviate meilisearch`.
+#
+# All values below have inline defaults (`${VAR:-default}`) so this runs out of the
+# box for local benchmarking; override by exporting env vars or adding a .env file.
+
+services:
+  neo4j:
+    image: neo4j:5.26
+    stop_grace_period: 5m  # default 10 s SIGKILLs a DB mid-checkpoint after a bulk load
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:-change_this_password}"
+      # Pinned so the indexing benchmark is reproducible inside Docker Desktop's 8 GB VM
+      # (Neo4j otherwise auto-sizes from the VM's RAM). Vector index lives in page cache.
+      NEO4J_server_memory_heap_initial__size: "2G"
+      NEO4J_server_memory_heap_max__size: "2G"
+      NEO4J_server_memory_pagecache_size: "3G"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    stop_grace_period: 5m  # default 10 s SIGKILLs a DB mid-checkpoint after a bulk load
+    shm_size: "3gb"  # parallel HNSW index build uses dynamic shared memory (default 64 MB)
+    ports:
+      - "5433:5432"  # offset from 5432 to avoid clashing with any local Postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-llm4snomed}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-change_this_password}"
+      POSTGRES_DB: "${POSTGRES_DB:-snomed}"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    stop_grace_period: 5m  # default 10 s SIGKILLs a DB mid-checkpoint after a bulk load
+    ports:
+      - "6333:6333"  # REST
+      - "6334:6334"  # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.27.0
+    stop_grace_period: 5m  # default 10 s SIGKILLs a DB mid-checkpoint after a bulk load
+    ports:
+      - "8080:8080"
+      - "50051:50051"  # gRPC, required by weaviate-client v4
+    environment:
+      QUERY_DEFAULTS_LIMIT: "25"
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"  # local dev only
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"  # bring-your-own-vectors; no vectorizer module needed
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: "node1"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13.3
+    stop_grace_period: 5m  # default 10 s SIGKILLs a DB mid-checkpoint after a bulk load
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY:-change_this_master_key}"
+      MEILI_ENV: "development"
+    volumes:
+      - meili_data:/meili_data
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  pg_data:
+  qdrant_data:
+  weaviate_data:
+  meili_data:

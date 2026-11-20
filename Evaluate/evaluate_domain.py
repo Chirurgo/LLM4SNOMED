@@ -195,9 +195,10 @@ class DomainEvaluator:
         print("Strict evaluation")
         for metric, values in ci.items():
                 val = float(values['val'])
-                l95 = float(values['l95'])  
-                u95 = float(values['u95'])  
+                l95 = float(values['l95'])
+                u95 = float(values['u95'])
                 print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
+        return ci
 
     @staticmethod
     def _is_overlap(span1, span2):
@@ -240,6 +241,7 @@ class DomainEvaluator:
                 l95 = float(values['l95'])
                 u95 = float(values['u95'])
                 print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
+        return ci
 
     # ---------- math helpers ----------
     def _safe_div(self, num: int, den: int) -> float:

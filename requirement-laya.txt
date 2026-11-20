@@ -1,0 +1,4 @@
+# Separate env for Benchmark.laya_study (laya needs transformers 5, the main env pins 4.x).
+# Install the CUDA build of torch first, then: pip install -r requirement-laya.txt
+laya==0.4.37
+transformers==5.23.0

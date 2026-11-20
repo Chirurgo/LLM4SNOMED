@@ -1,0 +1,155 @@
+# Canonical English names for every gold span in Minimal_Dataset.json.
+# Translated ONCE by Claude (claude-opus-5-5, 2026-11-18) from the span text + surrounding
+# context only -- the gold Target code / Target display were NOT shown during translation.
+# Columns: doc_idx<TAB>ent_idx<TAB>substring (verified against gold)<TAB>canonical English name
+0	0	Consult	Consultation
+0	1	dyspepsia	Dyspepsia
+0	2	PPI	Proton pump inhibitor
+0	3	Bismuth	Bismuth
+0	4	ปวดท้องบริเวณลิ้นปี่	Epigastric pain
+0	5	ปวดบีบๆ	Cramping pain
+0	6	ปวดแสบ	Burning pain
+0	7	PPI	Proton pump inhibitor
+0	8	BIsmuth	Bismuth
+0	9	ปวด	Pain
+0	10	ประจำเดือน	Menstruation
+0	11	ซื่อยามากินเอง	Self-medication
+0	12	ปวดมาก	Severe pain
+0	13	Soft	Abdomen soft
+0	14	tender	Abdominal tenderness
+0	15	dyspepsia	Dyspepsia
+0	16	PPI	Proton pump inhibitor
+1	0	consult	Consultation
+2	0	lymphoma	Lymphoma
+3	0	refer	Patient referral
+3	1	admit	Hospital admission
+3	2	pleural effusion	Pleural effusion
+3	3	exudate	Exudate
+3	4	Cyto	Cytology
+3	5	large lymphocyte	Large lymphocytes
+3	6	CT chest	Computed tomography of chest
+3	7	multiple LN	Lymph nodes
+3	8	splenomegaly	Splenomegaly
+3	9	pericardial effusion	Pericardial effusion
+3	10	CBC	Complete blood count
+3	11	WBC	White blood cell count
+3	12	L	Lymphocyte percentage
+3	13	lymphoma	Lymphoma
+3	14	admit for investigation	Admission for investigation
+3	15	consult Sx	Surgical consultation
+3	16	LN biopsy	Lymph node biopsy
+3	17	BM study	Bone marrow examination
+3	18	2%lidocain without adrenalline	Lidocaine 2% without epinephrine
+3	19	heparin	Heparin
+3	20	formalin	Formalin
+3	21	consult cardio	Cardiology consultation
+3	22	pericardial effusion	Pericardial effusion
+3	23	EF	Left ventricular ejection fraction
+3	24	ให้ยาเคมี	Chemotherapy
+3	25	เจาะ lab	Blood specimen collection
+4	0	HT	Hypertension
+4	1	DLP	Dyslipidemia
+4	2	CKDIII	Chronic kidney disease stage 3
+4	3	Cr	Serum creatinine
+4	4	IFG	Impaired fasting glucose
+4	5	อาการทั่วไปปกติ	General condition normal
+4	6	หอบเหนื่อย	Dyspnea
+4	7	เจ็บหน้าอก	Chest pain
+4	8	ใจสั่น	Palpitations
+4	9	บวม	Edema
+4	10	home SBP	Home systolic blood pressure
+4	11	ทานยา	Taking medication
+4	12	BP	Blood pressure
+4	13	ยาสมุนไพร	Herbal medicine
+4	14	FBS	Fasting blood glucose
+4	15	BUN	Blood urea nitrogen
+4	16	Cr	Serum creatinine
+4	17	Cr	Creatinine clearance
+4	18	Ca	Serum calcium
+4	19	PO4	Serum phosphate
+4	20	Na	Serum sodium
+4	21	K	Serum potassium
+4	22	Cl	Serum chloride
+4	23	HCO3	Serum bicarbonate
+4	24	LDL	LDL cholesterol
+4	25	Alb	Serum albumin
+4	26	WBC	White blood cell count
+4	27	Hb	Hemoglobin
+4	28	Hct	Hematocrit
+4	29	plt	Platelet count
+4	30	N	Neutrophil percentage
+4	31	L	Lymphocyte percentage
+4	32	UA	Urinalysis
+4	33	protein spec	Urine specific gravity
+4	34	protein	Urine protein
+4	35	WBC	Urine white blood cell count
+4	36	RBC	Urine red blood cell count
+4	37	Epi	Urine epithelial cell count
+4	38	ยาสมุนไพร	Herbal medicine
+4	39	exercise	Exercise
+5	0	F/U	Follow-up
+5	1	DLP	Dyslipidemia
+5	2	HT	Hypertension
+5	3	CKD	Chronic kidney disease
+6	0	ไข้	Fever
+6	1	ไอ	Cough
+6	2	ทานยา	Taking medication
+6	3	ไข้	Fever
+6	4	ไอแห้งๆ	Dry cough
+6	5	เป็นเย้อะตอนกำลังนอน	Nocturnal cough
+6	6	ผื่น	Rash
+6	7	คันตา	Itchy eye
+6	8	CXR	Chest X-ray
+6	9	infiltration	Lung infiltrate
+6	10	dardiomegaly	Cardiomegaly
+6	11	post viral cough	Post-viral cough
+7	0	ไอ	Cough
+8	0	U/D	Underlying disease
+8	1	ตรวจสุขภาพ	Health check-up
+8	2	ยกข้าว	Lifting heavy object
+8	3	ปวดศีรษะด้านหน้า	Frontal headache
+8	4	ตุ๊บๆ	Throbbing pain
+8	5	paracetamol	Paracetamol
+8	6	คลื่นไส้	Nausea
+8	7	อาเจียน	Vomiting
+8	8	เวียนศีรษะ	Dizziness
+8	9	ตาพร่า	Blurred vision
+8	10	ปวดหัว	Headache
+8	11	ปากเบี้ยว	Facial droop
+8	12	พุดไม่ชัด	Slurred speech
+8	13	แขนขาอ่อนแรง	Weakness of limb
+8	14	เจ็บหน้าอกฝั่งขวา	Right-sided chest pain
+8	15	จุกๆแน่นๆ	Chest tightness
+8	16	ปัสสาวะอุจจาระปกติ	Normal bowel and bladder function
+8	17	ไีข้	Fever
+8	18	น้ำหนักขึ้น	Weight gain
+8	19	ปัสสาวะกลางคืน	Nocturia
+8	20	หิวน้ำบ่อย	Excessive thirst
+8	21	check up	General health check-up
+8	22	ติดตามต่อเนื่อง	Follow-up
+8	23	vaccine	Vaccination
+8	24	astrazeneca	ChAdOx1 COVID-19 vaccine
+8	25	alcohol	Alcohol consumption
+8	26	smoking	Smoking
+8	27	V/S	Vital signs measurement
+8	28	BP	Blood pressure
+8	29	BW	Body weight
+8	30	POC glucose	Point-of-care blood glucose test
+8	31	EKG 12 leads	12-lead electrocardiogram
+8	32	NSR	Normal sinus rhythm
+8	33	STT change	ST-T wave changes
+8	34	LVH	Left ventricular hypertrophy
+8	35	tension headche	Tension-type headache
+8	36	acute chest pain	Acute chest pain
+8	37	acute costochondritis	Acute costochondritis
+8	38	obesity	Obesity
+8	39	BMI	Body mass index
+8	40	supportive	Supportive care
+8	41	weight loss	Weight loss advice
+8	42	LSM	Lifestyle modification
+8	43	F/U OPD med	Follow-up in medical outpatient clinic
+8	44	lab check up	Laboratory test
+8	45	CXR	Chest X-ray
+8	46	ติดตามเรื่องน้ำหนัก	Weight monitoring
+9	0	ปวดศีรษะ	Headache
+9	1	เวียนศรีษะ	Dizziness

@@ -161,7 +161,7 @@ async def awrite_concept_nodes(
                         c.semantic_tag = r.semantic_tag,
                         c.LABEL = r.LABEL
                     """
-                    await session.run(cypher, rows=rows)
+                    await (await session.run(cypher, rows=rows)).consume()
 
                 pbar.update(len(rows))
                 start += batch_size
@@ -303,7 +303,8 @@ async def awrite_relationships(
     REL_TYPE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")  # conservative and safe
 
     try:
-        total_rows = await asyncio.to_thread(lambda: lf.select(pl.len()).collect().item())
+        df_all = await asyncio.to_thread(lf.collect)
+        total_rows = df_all.height
         pbar = tqdm(total=total_rows, desc="Writing Relationships")
         skip = 0
         start = 0
@@ -311,8 +312,7 @@ async def awrite_relationships(
         async with driver:
             async with driver.session() as session:
                 while True:
-                    batch_lf = lf.slice(offset=start, length=batch_size)
-                    batch_df = await asyncio.to_thread(batch_lf.collect)
+                    batch_df = df_all.slice(start, batch_size)
                     rows = batch_df.height
                     if rows == 0:
                         break
@@ -357,7 +357,7 @@ async def awrite_relationships(
                         SET r += row.props
                         RETURN count(r) AS upserted
                         """
-                        await session.run(cypher, rows=payload)
+                        await (await session.run(cypher, rows=payload)).consume()
 
                     start += batch_size
                     pbar.update(rows)
@@ -368,6 +368,7 @@ async def awrite_relationships(
 
     except Exception as e:
         print(f"Error writing relationships: {e}")
+        raise
 
 
 def delete_all_in_batches(uri, user, password, database="neo4j", batch_size=30000, pause_sec=0.0):

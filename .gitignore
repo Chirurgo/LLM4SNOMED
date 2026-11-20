@@ -17,3 +17,13 @@ embeddings/
 *.joblib
 *.pt
 *.bin
+
+# Benchmark outputs (predictions may derive from restricted data)
+Benchmark/results/
+
+# GPU rerun outputs (Benchmark.run_all default results root)
+Benchmark/results_gpu/
+
+# DATA/ above also matches Benchmark/data/ on case-insensitive filesystems; that folder holds
+# public-derived inputs (canonical English names for Minimal_Dataset) the pipeline needs
+!Benchmark/data/

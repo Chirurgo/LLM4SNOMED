@@ -323,9 +323,10 @@ class Evaluator:
         print("Strict evaluation")
         for metric, values in ci.items():
             val = float(values['val'])
-            l95 = float(values['l95'])  
-            u95 = float(values['u95'])  
+            l95 = float(values['l95'])
+            u95 = float(values['u95'])
             print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
+        return ci
 
     def _is_overlap(self, span1, span2):
         return not (span1[1] <= span2[0] or span2[1] <= span1[0])
@@ -365,9 +366,10 @@ class Evaluator:
         print("Loose evaluation")
         for metric, values in ci.items():
             val = float(values['val'])
-            l95 = float(values['l95'])  
+            l95 = float(values['l95'])
             u95 = float(values['u95'])
             print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
+        return ci
     
     def hierarchy_aware(self):
         """
@@ -417,9 +419,10 @@ class Evaluator:
         ci = _calculate_ci(tp, fn, fp)
         for metric, values in ci.items():
             val = float(values['val'])
-            l95 = float(values['l95'])  
+            l95 = float(values['l95'])
             u95 = float(values['u95'])
             print(f"{metric:10}: {val:>6.2f}% (95% CI: {l95:>6.2f}% – {u95:>6.2f}%)")
+        return ci
 
     def _span_iou(self, span1, span2):
         inter_start = max(span1[0], span2[0])
